@@ -1,34 +1,29 @@
 {
   "name": "@syncr/svelte",
   "version": "0.1.0",
+  "description": "Svelte adapter for Syncr – Svelte stores for synchronized state.",
+  "private": false,
   "type": "module",
-  "peerDependencies": {
-    "svelte": "^4.0.0 || ^5.0.0"
-  },
-  "dependencies": {
-    "@syncr/core": "0.1.0"
-  },
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
-    "build": "tsup src/index.ts --dts --format esm --clean",
+    "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
-  "devDependencies": {
-    "typescript": "^5.6.3",
-    "vitest": "^2.1.3",
-    "tsup": "^8.0.1"
-  }
+  "peerDependencies": {
+    "svelte": ">=4"
+  },
+  "dependencies": {
+    "@syncr/core": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": ["svelte", "svelte-store", "state", "sync", "syncr"],
+  "author": "Vidhyut Rabari",
+  "license": "MIT"
 }

@@ -1,0 +1,99 @@
+name: CI & Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    name: Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Test all packages
+        run: pnpm test
+
+  release:
+    name: Semantic Release + Publish to npm
+    needs: build-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build all packages
+        run: pnpm build
+
+      - name: Run semantic-release (tags + changelog)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: pnpm release
+
+      - name: Authenticate with npm
+        run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish workspaces to npm
+        run: |
+          # Loop over each package under ./packages
+          for PKG in packages/*; do
+            if [ -f "$PKG/package.json" ]; then
+              echo "Publishing $PKG"
+              cd "$PKG"
+
+              # check if version already exists on npm
+              PKG_NAME=$(node -p "require('./package.json').name")
+              PKG_VERSION=$(node -p "require('./package.json').version")
+              EXISTS=$(npm view "${PKG_NAME}@${PKG_VERSION}" version || echo "none")
+
+              if [ "$EXISTS" = "none" ]; then
+                npm publish --access public
+                echo "Published ${PKG_NAME}@${PKG_VERSION}"
+              else
+                echo "Skip ${PKG_NAME}@${PKG_VERSION} (already on npm)"
+              fi
+
+              cd - >/dev/null
+            fi
+          done
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
