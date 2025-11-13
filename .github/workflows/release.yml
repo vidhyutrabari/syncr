@@ -17,7 +17,8 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          # don't specify "version" because it's already in package.json (packageManager)
+          run_install: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -47,7 +48,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          run_install: false
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -74,13 +75,11 @@ jobs:
 
       - name: Publish workspaces to npm
         run: |
-          # Loop over each package under ./packages
           for PKG in packages/*; do
             if [ -f "$PKG/package.json" ]; then
               echo "Publishing $PKG"
               cd "$PKG"
 
-              # check if version already exists on npm
               PKG_NAME=$(node -p "require('./package.json').name")
               PKG_VERSION=$(node -p "require('./package.json').version")
               EXISTS=$(npm view "${PKG_NAME}@${PKG_VERSION}" version || echo "none")
