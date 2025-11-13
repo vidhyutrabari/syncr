@@ -16,17 +16,15 @@ export function useSyncr<T>(
     const unsub = handleRef.current!.value.subscribe(() => {
       forceRender();
     });
-
-    return () => {
-      unsub();
-    };
+    return () => unsub();
   }, []);
 
-  React.useEffect(() => {
-    return () => {
+  React.useEffect(
+    () => () => {
       handleRef.current?.destroy();
-    };
-  }, []);
+    },
+    []
+  );
 
   const state = handleRef.current!.value.get();
 
@@ -36,7 +34,6 @@ export function useSyncr<T>(
         typeof v === 'function'
           ? (v as (prev: T) => T)(handleRef.current!.value.get())
           : v;
-
       handleRef.current!.set(next);
     },
     []

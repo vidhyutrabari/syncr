@@ -1,4 +1,3 @@
-// syncr-core.d.ts
 declare module '@syncr/core' {
     export interface Channel<T> {
       id: string;

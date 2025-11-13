@@ -36,13 +36,13 @@ async function deriveKey(
     ['deriveKey']
   );
 
-  // 👇 Force the underlying buffer to be treated as a real ArrayBuffer
-  const saltView = new Uint8Array(salt.buffer as ArrayBuffer);
+  // 👇 Explicit cast so TS is happy everywhere (local + CI)
+  const saltBufferSource = salt as unknown as BufferSource;
 
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt: saltView,          // 👈 now Uint8Array<ArrayBuffer>, OK for BufferSource
+      salt: saltBufferSource,
       iterations: iter,
       hash: 'SHA-256'
     },
@@ -83,9 +83,6 @@ export function storageEncryptedChannel<T>(
       | undefined
   } = opts;
 
-  /**
-   * READ (decrypt)
-   */
   const read = async (): Promise<T | undefined> => {
     if (!storage) return undefined;
 
@@ -115,9 +112,6 @@ export function storageEncryptedChannel<T>(
     }
   };
 
-  /**
-   * WRITE (encrypt)
-   */
   const write = async (value: T) => {
     if (!storage) return;
 
@@ -145,9 +139,6 @@ export function storageEncryptedChannel<T>(
     storage.setItem(key, b64);
   };
 
-  /**
-   * SUBSCRIBE (via window.storage events)
-   */
   const subscribe = (cb: (v: T | undefined) => void) => {
     if (!storage) return () => {};
 
