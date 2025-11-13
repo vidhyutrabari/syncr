@@ -18,7 +18,7 @@
     "vue": ">=3"
   },
   "dependencies": {
-    "@syncr/core": "workspace:*"
+    "@syncr/core": "file:../core"
   },
   "publishConfig": {
     "access": "public"

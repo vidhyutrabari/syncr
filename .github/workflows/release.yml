@@ -14,27 +14,22 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          # don't specify "version" because it's already in package.json (packageManager)
-          run_install: false
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        # use npm ci if you have package-lock.json committed
+        run: npm ci
 
       - name: Build all packages
-        run: pnpm build
+        run: npm run build
 
       - name: Test all packages
-        run: pnpm test
+        run: npm test
 
   release:
     name: Semantic Release + Publish to npm
@@ -45,28 +40,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          cache: 'npm'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: npm ci
 
       - name: Build all packages
-        run: pnpm build
+        run: npm run build
 
       - name: Run semantic-release (tags + changelog)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: pnpm release
+        # assuming you have "release": "semantic-release" in package.json
+        run: npm run release
 
       - name: Authenticate with npm
         run: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
