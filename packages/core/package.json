@@ -7,7 +7,9 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",
@@ -28,5 +30,8 @@
     "broadcastchannel"
   ],
   "author": "Vidhyut Rabari",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^3.24.2"
+  }
 }

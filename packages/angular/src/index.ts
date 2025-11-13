@@ -1,68 +1,47 @@
-import { signal, effect, type Signal } from '@angular/core';
-import type { SyncrOptions } from '@syncr/core';
+import { Injectable } from '@angular/core';
+import { BehaviorSubject, Observable } from 'rxjs';
+import type { SyncrOptions, SyncrHandle } from '@syncr/core';
 import { createSyncr } from '@syncr/core';
-import { BehaviorSubject } from 'rxjs';
 
-export type SyncrSignal<T> = {
-  state: Signal<T>;
-  set: (v: T | ((prev:T)=>T)) => void;
-  destroy: () => void;
-  asObservable: () => import('rxjs').Observable<T>;
-};
+export class SyncrState<T> {
+  private handle: SyncrHandle<T>;
+  private subject: BehaviorSubject<T>;
 
-/**
- * createSyncrSignal
- * Angular 16+ Signals adapter for Syncr.
- * Usage (standalone or NgModule-based components):
- *   const syn = createSyncrSignal({ key:'filters', defaultValue, channels:['url','storage'] });
- *   const filters = syn.state(); // read signal
- *   syn.set({ ...filters, q: 'abc' });
- */
-export function createSyncrSignal<T>(opts: SyncrOptions<T>): SyncrSignal<T> {
-  const handle = createSyncr<T>(opts);
-  const s = signal<T>(handle.value.get());
-  const subj = new BehaviorSubject<T>(s());
+  constructor(opts: SyncrOptions<T>) {
+    this.handle = createSyncr<T>(opts);
+    this.subject = new BehaviorSubject<T>(this.handle.value.get());
 
-  // Keep signal in sync with core updates
-  const unsubscribe = handle.value.subscribe(v => {
-    s.set(v);
-    subj.next(v);
-  });
+    this.handle.value.subscribe((v: T) => {
+      this.subject.next(v);
+    });
+  }
 
-  // Make sure we propagate programmatic updates back to channels
-  const set = (v: T | ((prev:T)=>T)) => {
-    const next = typeof v === 'function' ? (v as any)(s()) : v;
-    handle.set(next);
-    // signal will be set via subscription above
-  };
+  asObservable(): Observable<T> {
+    return this.subject.asObservable();
+  }
 
-  const destroy = () => {
-    unsubscribe();
-    handle.destroy();
-    subj.complete();
-  };
+  get value(): T {
+    return this.handle.value.get();
+  }
 
-  const asObservable = () => subj.asObservable();
+  set(v: T | ((prev: T) => T)) {
+    const next =
+      typeof v === 'function'
+        ? (v as (prev: T) => T)(this.handle.value.get())
+        : v;
 
-  return { state: s, set, destroy, asObservable };
+    this.handle.set(next);
+  }
+
+  destroy() {
+    this.handle.destroy();
+    this.subject.complete();
+  }
 }
 
-/**
- * createSyncrStore
- * RxJS-first adapter that returns a BehaviorSubject-like store.
- */
-export function createSyncrStore<T>(opts: SyncrOptions<T>) {
-  const handle = createSyncr<T>(opts);
-  const subj = new BehaviorSubject<T>(handle.value.get());
-  const unsub = handle.value.subscribe(v => subj.next(v));
-
-  return {
-    value$: subj.asObservable(),
-    getValue: () => subj.getValue(),
-    set: (v: T | ((prev:T)=>T)) => {
-      const next = typeof v === 'function' ? (v as any)(subj.getValue()) : v;
-      handle.set(next);
-    },
-    destroy: () => { unsub(); handle.destroy(); subj.complete(); }
-  };
+@Injectable({ providedIn: 'root' })
+export class SyncrService {
+  create<T>(opts: SyncrOptions<T>): SyncrState<T> {
+    return new SyncrState<T>(opts);
+  }
 }

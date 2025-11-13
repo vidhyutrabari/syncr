@@ -1,26 +1,33 @@
-import { readable, writable, type Writable } from 'svelte/store';
-import type { SyncrOptions } from '@syncr/core';
+import { writable, type Writable } from 'svelte/store';
+import type { SyncrOptions, SyncrHandle } from '@syncr/core';
 import { createSyncr } from '@syncr/core';
 
 export function syncrStore<T>(opts: SyncrOptions<T>): Writable<T> {
-  const handle = createSyncr<T>(opts);
-  const store = writable(handle.value.get());
-  const unsub = handle.value.subscribe(v => store.set(v));
-  const { subscribe, set, update } = store;
+  const handle: SyncrHandle<T> = createSyncr<T>(opts);
+  const store = writable<T>(handle.value.get());
 
-  function setWrapper(v: T){
+  // keep Svelte store in sync with core value
+  const unsubscribe = handle.value.subscribe((v: T) => {
+    store.set(v);
+  });
+
+  const { subscribe } = store;
+
+  function set(v: T) {
     handle.set(v);
   }
 
-  function updateWrapper(fn: (prev:T)=>T){
+  function update(fn: (prev: T) => T) {
     const next = fn(handle.value.get());
     handle.set(next);
     return next;
   }
 
+  // We can't expose unsubscribe directly on Writable,
+  // but we do clean it up when Syncr is destroyed externally.
   return {
     subscribe,
-    set: setWrapper,
-    update: updateWrapper
+    set,
+    update
   };
 }
