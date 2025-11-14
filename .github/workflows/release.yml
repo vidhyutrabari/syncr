@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build-test:
     name: Build & Test
@@ -22,7 +25,6 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        # use npm ci if you have package-lock.json committed
         run: npm ci
 
       - name: Build all packages
@@ -56,7 +58,6 @@ jobs:
       - name: Run semantic-release (tags + changelog)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # assuming you have "release": "semantic-release" in package.json
         run: npm run release
 
       - name: Authenticate with npm
