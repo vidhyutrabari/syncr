@@ -1,13 +1,15 @@
 {
   "name": "@syncr/vue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Vue adapter for Syncr – Composition API state synchronization.",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",
@@ -18,12 +20,18 @@
     "vue": ">=3"
   },
   "dependencies": {
-    "@syncr/core": "file:../core"
+    "@syncr/core": "^0.1.0"
   },
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["vue", "vue3", "composition-api", "state-management", "syncr"],
+  "keywords": [
+    "vue",
+    "vue3",
+    "composition-api",
+    "state-management",
+    "syncr"
+  ],
   "author": "Vidhyut Rabari",
   "license": "MIT"
 }

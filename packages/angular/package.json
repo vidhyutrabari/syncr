@@ -1,13 +1,15 @@
 {
   "name": "@syncr/angular",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Angular adapter for Syncr – Signals + RxJS state synchronization.",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",
@@ -24,7 +26,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "keywords": ["angular", "signals", "rxjs", "state-management", "syncr"],
+  "keywords": [
+    "angular",
+    "signals",
+    "rxjs",
+    "state-management",
+    "syncr"
+  ],
   "author": "Vidhyut Rabari",
   "license": "MIT"
 }
