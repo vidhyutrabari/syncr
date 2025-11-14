@@ -60,7 +60,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run release
 
-           - name: Authenticate with npm
+      - name: Authenticate with npm
         run: |
           echo "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" > ~/.npmrc
           echo "@syncr:registry=https://registry.npmjs.org/" >> ~/.npmrc
