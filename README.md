@@ -51,7 +51,54 @@ Modern apps require state that is:
 
 Traditional state management libraries don't solve this.
 
+Here is a **beautiful, polished, world-class feature comparison chart** you can paste directly into your README.
+It clearly positions **Syncr** as a unique, high-value library compared to the most known tools.
+
+This kind of chart dramatically improves adoption and credibility.
+
 ---
+
+# 📊 **Feature Comparison**
+
+A side-by-side comparison with popular state & sync libraries:
+
+| Feature / Library                 | **Syncr**                               | Zustand    | Jotai      | Redux      | TanStack Router    | URL + Storage libs | LocalStorage libs |
+| --------------------------------- | --------------------------------------- | ---------- | ---------- | ---------- | ------------------ | ------------------ | ----------------- |
+| **URL state sync**                | ✔ Built-in                              | ❌          | ❌          | ❌          | Partial            | ✔ (URL only)       | ❌                 |
+| **localStorage sync**             | ✔ Automatic                             | Plugin     | Plugin     | Plugin     | ❌                  | ❌                  | ✔ Basic only      |
+| **Encrypted storage (AES-GCM)**   | ✔ Built-in                              | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **Multi-tab sync**                | ✔ Built-in (storage + BroadcastChannel) | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **API sync (GET/POST + ETag)**    | ✔ Optional                              | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **Offline queue for server sync** | ✔                                       | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **Conflict resolution**           | ✔ Pluggable                             | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **Zod validation / parsing**      | ✔ Built-in                              | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **Multi-framework adapters**      | ✔ React, Vue, Svelte, Angular           | React only | React only | React only | Framework-specific | No                 | No                |
+| **Tree-shakable**                 | ✔ Tiny core                             | ✔          | ✔          | ❌          | ✔                  | ✔                  | ✔                 |
+| **SSR-safe helpers**              | ✔                                       | ❌          | ❌          | ❌          | Partial            | ❌                  | ❌                 |
+| **URL + Storage + API unified**   | ✔                                       | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+| **Zero boilerplate**              | ✔ 1-line setup                          | ❌          | ❌          | ❌          | ❌                  | ❌                  | ❌                 |
+
+---
+
+# 🎯 **Why Syncr Wins**
+
+While other libraries handle **local UI state** or **routing**, Syncr is the *only* system designed to unify:
+
+* UI state
+* URL
+* Storage
+* Encrypted storage
+* Multi-tab updates
+* Server persistence
+* Conflict resolution
+* Zod schema validation
+
+…into **one** simple configuration.
+
+Syncr replaces dozens of utilities and hundreds of lines of boilerplate that developers re-write every time they build dashboards, admin panels, CRMs, filters, and multi-tab web apps.
+
+---
+
 
 ## ❌ Without Syncr, developers juggle:
 
