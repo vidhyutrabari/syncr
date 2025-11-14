@@ -1,15 +1,13 @@
 {
   "name": "@syncr/react",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "React adapter for Syncr – useSyncr hook for synchronized state.",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --clean",
     "test": "vitest run",
@@ -20,7 +18,7 @@
     "react": ">=17"
   },
   "dependencies": {
-    "@syncr/core": "file:../core"
+    "@syncr/core": "^0.1.0"
   },
   "publishConfig": {
     "access": "public"
