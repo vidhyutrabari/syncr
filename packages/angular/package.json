@@ -1,6 +1,6 @@
 {
   "name": "@syncr/angular",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Angular adapter for Syncr – Signals + RxJS state synchronization.",
   "private": false,
   "type": "module",
