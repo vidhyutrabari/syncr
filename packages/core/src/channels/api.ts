@@ -9,7 +9,7 @@ export type ApiChannelOptions<T> = {
   /** Optional fetch implementation for SSR/testing */
   fetchImpl?: typeof fetch;
   /** Additional headers */
-  headers?: Record<string,string>;
+  headers?: Record<string, string>;
   /** LocalStorage key prefix for offline queue & etags */
   storagePrefix?: string;
   /** Retry flush interval (ms) when offline queue exists */
@@ -20,13 +20,41 @@ type Envelope<T> = { value: T; version?: string };
 
 export function apiChannel<T>(key: string, opts: ApiChannelOptions<T>): Channel<T> {
   const {
-    baseUrl, path = (k)=>`/state/${encodeURIComponent(k)}`,
-    fetchImpl = (typeof fetch !== 'undefined' ? fetch.bind(globalThis) : undefined) as any,
-    headers = {}, storagePrefix = 'syncr_api', retryMs = 1500
+    baseUrl,
+    path = (k) => `/state/${encodeURIComponent(k)}`,
+    storagePrefix = 'syncr_api',
+    headers = {},
+    retryMs = 1500,
+    fetchImpl: suppliedFetch
   } = opts;
 
+  const defaultFetch: typeof fetch | undefined =
+    typeof fetch !== 'undefined' ? fetch.bind(globalThis) : undefined;
+
+  const fetchImpl = suppliedFetch ?? defaultFetch;
+  if (!fetchImpl) {
+    throw new Error('apiChannel requires a fetch implementation (global fetch not available).');
+  }
+
   const queueKey = `${storagePrefix}:queue:${key}`;
-  const etagKey  = `${storagePrefix}:etag:${key}`;
+  const etagKey = `${storagePrefix}:etag:${key}`;
+
+  const safeReadQueue = (): Envelope<T>[] => {
+    if (!isBrowser()) return [];
+    const raw = localStorage.getItem(queueKey);
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  };
+
+  const writeQueue = (q: Envelope<T>[]) => {
+    if (!isBrowser()) return;
+    localStorage.setItem(queueKey, JSON.stringify(q));
+  };
 
   const read = async (): Promise<T | undefined> => {
     try {
@@ -34,7 +62,7 @@ export function apiChannel<T>(key: string, opts: ApiChannelOptions<T>): Channel<
       if (!res.ok) return undefined;
       const etag = res.headers.get('ETag') || undefined;
       if (etag && isBrowser()) localStorage.setItem(etagKey, etag);
-      const body = await res.json() as Envelope<T>;
+      const body = (await res.json()) as Envelope<T>;
       return body?.value as T;
     } catch {
       return undefined;
@@ -44,19 +72,23 @@ export function apiChannel<T>(key: string, opts: ApiChannelOptions<T>): Channel<
   const write = async (value: T) => {
     const etag = isBrowser() ? localStorage.getItem(etagKey) || undefined : undefined;
     const payload: Envelope<T> = { value, version: etag };
-    const req = { method: 'POST', headers: { 'Content-Type':'application/json', ...headers }, body: JSON.stringify(payload) } as RequestInit;
+
+    const req: RequestInit = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(payload)
+    };
 
     try {
       const res = await fetchImpl(`${baseUrl}${path(key)}`, req);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const newTag = res.headers.get('ETag') || undefined;
       if (newTag && isBrowser()) localStorage.setItem(etagKey, newTag);
-    } catch (e) {
-      // Offline or server error: enqueue for later
+    } catch {
       if (isBrowser()) {
-        const q = JSON.parse(localStorage.getItem(queueKey) || '[]');
+        const q = safeReadQueue();
         q.push(payload);
-        localStorage.setItem(queueKey, JSON.stringify(q));
+        writeQueue(q);
         scheduleFlush();
       }
     }
@@ -64,16 +96,16 @@ export function apiChannel<T>(key: string, opts: ApiChannelOptions<T>): Channel<
 
   const flush = async () => {
     if (!isBrowser()) return;
-    const raw = localStorage.getItem(queueKey);
-    if (!raw) return;
-    const q: Envelope<T>[] = JSON.parse(raw);
+    const q = safeReadQueue();
     if (!q.length) return;
+
     const next: Envelope<T>[] = [];
+
     for (const item of q) {
       try {
         const res = await fetchImpl(`${baseUrl}${path(key)}`, {
           method: 'POST',
-          headers: { 'Content-Type':'application/json', ...headers },
+          headers: { 'Content-Type': 'application/json', ...headers },
           body: JSON.stringify(item)
         });
         if (!res.ok) throw new Error('failed');
@@ -83,7 +115,8 @@ export function apiChannel<T>(key: string, opts: ApiChannelOptions<T>): Channel<
         next.push(item);
       }
     }
-    localStorage.setItem(queueKey, JSON.stringify(next));
+
+    writeQueue(next);
     if (next.length) scheduleFlush();
   };
 
@@ -93,16 +126,19 @@ export function apiChannel<T>(key: string, opts: ApiChannelOptions<T>): Channel<
     if (flushTimer) return;
     flushTimer = setTimeout(async () => {
       flushTimer = null;
-      if (navigator.onLine) await flush();
+      if ((navigator as any).onLine) await flush();
       else scheduleFlush();
     }, retryMs);
   };
 
+  const onlineHandler = () => {
+    void flush();
+  };
+
   if (isBrowser()) {
-    window.addEventListener('online', flush);
+    window.addEventListener('online', onlineHandler);
   }
 
-  const subscribe = undefined; // server doesn't push; polling could be added by user
-
-  return { id: 'api', priority: 2, read, write, subscribe };
+  // We don't expose subscribe here; server isn't pushing.
+  return { id: `api:${key}`, priority: 2, read, write };
 }

@@ -83,10 +83,12 @@ export function storageEncryptedChannel<T>(
       | undefined
   } = opts;
 
+  const storageKey = `syncr:enc:${key}`;
+
   const read = async (): Promise<T | undefined> => {
     if (!storage) return undefined;
 
-    const b64 = storage.getItem(key);
+    const b64 = storage.getItem(storageKey);
     if (!b64) return undefined;
 
     const raw = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -136,14 +138,14 @@ export function storageEncryptedChannel<T>(
     out.set(ctBytes, iv.length);
 
     const b64 = btoa(String.fromCharCode(...out));
-    storage.setItem(key, b64);
+    storage.setItem(storageKey, b64);
   };
 
   const subscribe = (cb: (v: T | undefined) => void) => {
     if (!storage) return () => {};
 
     const handler = (e: StorageEvent) => {
-      if (e.key === key) {
+      if (e.key === storageKey) {
         read()
           .then((v) => cb(v))
           .catch(() => {});
@@ -158,7 +160,7 @@ export function storageEncryptedChannel<T>(
   };
 
   return {
-    id: 'storage-encrypted',
+    id: `storage-encrypted:${key}`,
     priority: 0,
     read,
     write,

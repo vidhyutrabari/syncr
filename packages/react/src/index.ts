@@ -6,19 +6,24 @@ export function useSyncr<T>(
   opts: SyncrOptions<T>
 ): readonly [T, (v: T | ((prev: T) => T)) => void] {
   const handleRef = React.useRef<SyncrHandle<T> | null>(null);
-  const [, forceRender] = React.useReducer((x: number) => x + 1, 0);
 
+  // Create the Syncr handle once per component instance
   if (!handleRef.current) {
     handleRef.current = createSyncr<T>(opts);
   }
 
-  React.useEffect(() => {
-    const unsub = handleRef.current!.value.subscribe(() => {
-      forceRender();
-    });
-    return () => unsub();
-  }, []);
+  const handle = handleRef.current;
 
+  // Subscribe using React's official external store API
+  const state = React.useSyncExternalStore(
+    React.useCallback((cb: () => void) => {
+      // SyncrHandle.subscribe returns an unsubscribe function
+      return handle.subscribe(() => cb());
+    }, [handle]),
+    React.useCallback(() => handle.get(), [handle])
+  );
+
+  // Destroy Syncr handle on unmount
   React.useEffect(
     () => () => {
       handleRef.current?.destroy();
@@ -26,17 +31,11 @@ export function useSyncr<T>(
     []
   );
 
-  const state = handleRef.current!.value.get();
-
   const set = React.useCallback(
-    (v: T | ((prev: T) => T)) => {
-      const next =
-        typeof v === 'function'
-          ? (v as (prev: T) => T)(handleRef.current!.value.get())
-          : v;
-      handleRef.current!.set(next);
+    (next: T | ((prev: T) => T)) => {
+      handle.set(next);
     },
-    []
+    [handle]
   );
 
   return [state, set] as const;

@@ -5,25 +5,27 @@ import { createSyncr } from '@syncr/core';
 export function useSyncr<T extends object>(opts: SyncrOptions<T>) {
   const handle: SyncrHandle<T> = createSyncr<T>(opts);
 
-  const state = reactive(handle.value.get() as T) as T;
+  // Initialize a reactive object from Syncr's current value
+  const state = reactive(handle.get() as T) as T;
 
-  // keep reactive object in sync
-  handle.value.subscribe((v: T) => {
+  // Keep reactive object in sync with Syncr core
+  const unsubscribe = handle.subscribe((v: T) => {
     Object.assign(state as any, v);
   });
 
   const set = (v: T | ((prev: T) => T)) => {
-    const next =
-      typeof v === 'function'
-        ? (v as (prev: T) => T)(handle.value.get())
-        : v;
+    // Core already supports functional updates
+    handle.set(v);
+  };
 
-    handle.set(next);
+  const destroy = () => {
+    unsubscribe();
+    handle.destroy();
   };
 
   return {
     state,
     set,
-    destroy: handle.destroy
+    destroy
   };
 }

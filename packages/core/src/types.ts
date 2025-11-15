@@ -3,19 +3,34 @@ export interface Channel<T> {
   priority?: number;
   read(): T | undefined | Promise<T | undefined>;
   write(value: T): void | Promise<void>;
-  subscribe?(cb: (v: T | undefined) => void): () => void;
+  subscribe?(cb: (value: T | undefined) => void): () => void;
 }
 
-export type Schema<T> = {
-  parse: (x: any) => T;
-  serialize?: (x: T) => any;
-};
+export interface Schema<T> {
+  parse: (value: unknown) => T;
+  serialize?: (value: T) => unknown;
+  onError?: (err: unknown, raw: unknown) => void;
+}
 
-export type SyncrOptions<T> = {
+export interface SyncrOptions<T> {
   key: string;
   defaultValue: T;
-  channels?: Array<'url' | 'storage' | Channel<T>>;
+  channels: (Channel<T> | 'url' | 'storage')[];
   debounceMs?: number;
   schema?: Schema<T>;
-  onConflict?: (local: T, incoming: T, meta: { from: string, ts: number }) => T;
-};
+  onConflict?: (a: T, b: T) => T; // default: last-writer-wins
+}
+
+export interface SyncrHandle<T> {
+  get(): T;
+  set(updater: T | ((prev: T) => T)): void;
+  subscribe(cb: (value: T) => void): () => void;
+  destroy(): void;
+
+  // Backwards compatibility shim for older adapters/tests
+  value?: {
+    get(): T;
+    subscribe(cb: (v: T) => void): () => void;
+  };
+}
+

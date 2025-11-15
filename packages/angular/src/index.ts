@@ -15,19 +15,15 @@ export class SyncrState<T> {
   }
 
   get value(): T {
-    return this.handle.value.get();
+    return this.handle.get();
   }
 
-  subscribe(fn: (v: T) => void) {
-    return this.handle.value.subscribe(fn);
+  subscribe(fn: (v: T) => void): () => void {
+    return this.handle.subscribe(fn);
   }
 
   set(v: T | ((prev: T) => T)) {
-    const next =
-      typeof v === 'function'
-        ? (v as (prev: T) => T)(this.handle.value.get())
-        : v;
-    this.handle.set(next);
+    this.handle.set(v);
   }
 
   destroy() {
@@ -52,18 +48,14 @@ export function createSyncrSignal<T>(opts: SyncrOptions<T>): {
   destroy(): void;
 } {
   const handle: SyncrHandle<T> = createSyncr<T>(opts);
-  const state = signal<T>(handle.value.get());
+  const state = signal<T>(handle.get());
 
-  const unsubscribe = handle.value.subscribe((v: T) => {
+  const unsubscribe = handle.subscribe((v: T) => {
     state.set(v);
   });
 
   const set = (v: T | ((prev: T) => T)) => {
-    const next =
-      typeof v === 'function'
-        ? (v as (prev: T) => T)(handle.value.get())
-        : v;
-    handle.set(next);
+    handle.set(v);
   };
 
   const destroy = () => {
@@ -85,18 +77,14 @@ export function createSyncrStore<T>(opts: SyncrOptions<T>): {
   destroy(): void;
 } {
   const handle: SyncrHandle<T> = createSyncr<T>(opts);
-  const subject = new BehaviorSubject<T>(handle.value.get());
+  const subject = new BehaviorSubject<T>(handle.get());
 
-  const unsubscribe = handle.value.subscribe((v: T) => {
+  const unsubscribe = handle.subscribe((v: T) => {
     subject.next(v);
   });
 
   const set = (v: T | ((prev: T) => T)) => {
-    const next =
-      typeof v === 'function'
-        ? (v as (prev: T) => T)(handle.value.get())
-        : v;
-    handle.set(next);
+    handle.set(v);
   };
 
   const destroy = () => {

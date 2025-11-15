@@ -1,25 +1,17 @@
-/**
- * Merge the given query param key/value into the current URL without losing other params.
- * Works well with Syncr's URL channel to avoid clobbering state.
- */
-export function mergeQueryParam(key: string, value: string) {
+export function mergeQueryParam(key: string, value: string): void {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   url.searchParams.set(key, value);
-  history.replaceState({}, '', url);
+  window.history.replaceState(null, '', url.toString());
 }
 
-/**
- * Ensure a given set of params are preserved when navigating using pushState.
- * Call before you perform router navigations that might drop params.
- */
-export function preserveParams(keys: string[]) {
+export function preserveParams(keys: string[]): URLSearchParams | undefined {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   const preserved = new URLSearchParams();
-  keys.forEach(k => {
+  for (const k of keys) {
     const v = url.searchParams.get(k);
     if (v !== null) preserved.set(k, v);
-  });
+  }
   return preserved;
 }

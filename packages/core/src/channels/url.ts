@@ -1,31 +1,51 @@
-import type { Channel, Schema } from '../types.js';
+import type { Channel } from '../types.js';
 import { isBrowser } from '../utils.js';
 
-export function urlChannel<T>(key: string, schema?: Schema<T>): Channel<T> {
-  const read = () => {
+export function urlChannel<T>(key: string): Channel<T> {
+  const read = (): T | undefined => {
     if (!isBrowser()) return undefined;
-    const params = new URLSearchParams(window.location.search);
-    const raw = params.get(key);
-    if (!raw) return undefined;
+
     try {
-      const parsed = JSON.parse(raw);
-      return schema ? schema.parse(parsed) : parsed;
+      const url = new URL(window.location.href);
+      const raw = url.searchParams.get(key);
+      if (!raw) return undefined;
+
+      return JSON.parse(raw) as T;
     } catch {
+      // malformed URL or JSON – treat as no value
       return undefined;
     }
   };
+
   const write = (value: T) => {
     if (!isBrowser()) return;
-    const url = new URL(window.location.href);
-    const serialized = schema?.serialize ? schema.serialize(value) : value as any;
-    url.searchParams.set(key, JSON.stringify(serialized));
-    window.history.replaceState({}, '', url);
+
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set(key, JSON.stringify(value));
+      // Use replaceState to avoid history spam
+      window.history.replaceState(null, '', url.toString());
+    } catch {
+      // ignore URL errors
+    }
   };
-  const subscribe = (cb: (v:T|undefined)=>void) => {
+
+  const subscribe = (cb: (v: T | undefined) => void) => {
     if (!isBrowser()) return () => {};
-    const onPop = () => cb(read());
-    window.addEventListener('popstate', onPop);
-    return () => window.removeEventListener('popstate', onPop);
+
+    const onPopState = () => {
+      cb(read());
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   };
-  return { id: 'url', priority: 1, read, write, subscribe };
+
+  return {
+    id: `url:${key}`,
+    priority: 1,
+    read,
+    write,
+    subscribe
+  };
 }
