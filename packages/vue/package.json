@@ -1,6 +1,6 @@
 {
   "name": "@syncr/vue",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Vue adapter for Syncr – Composition API state synchronization.",
   "private": false,
   "type": "module",
