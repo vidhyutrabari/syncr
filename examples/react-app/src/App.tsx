@@ -1,73 +1,153 @@
 import React from 'react';
+import { z } from 'zod';
 import { useSyncr } from '@syncr/react';
-import { apiChannel, enableSyncrConsoleDevtools, tapChannel, storageEncryptedChannel, broadcastChannel } from '@syncr/core';
+import {
+  broadcastChannel,
+  zodSchema,
+  enableSyncrConsoleDevtools,
+  tapChannel,
+} from '@syncr/core';
 
-type Filters = { q:string; sort:'date'|'name'; page:number };
-const defaults: Filters = { q:'', sort:'date', page:1 };
+const FilterSchema = z.object({
+  q: z.string(),
+  sort: z.enum(['date', 'name']),
+  page: z.number().int().min(1),
+});
 
-export default function App(){
-const [useServer, setUseServer] = React.useState(false);
-const [devtools, setDevtools] = React.useState(false);
-  const [encrypted, setEncrypted] = React.useState(false);
-  const [broadcast, setBroadcast] = React.useState(false);
+type Filters = z.infer<typeof FilterSchema>;
 
-const channels = React.useMemo(() => {
-  const list: any[] = ['url'];
-        if (encrypted) { list.push(storageEncryptedChannel<Filters>('filters', { passphrase: 'demo-pass' })); } else { list.push('storage'); }
-  if (useServer) list.push(apiChannel<Filters>('filters', { baseUrl: 'http://localhost:4321' }));
-        if (broadcast) list.push(broadcastChannel<Filters>('filters'));
-  return devtools ? list.map(ch => typeof ch === 'string' ? ch : tapChannel(ch)) : list;
-  }, [useServer, devtools]);
+const DEFAULT_FILTERS: Filters = {
+  q: '',
+  sort: 'date',
+  page: 1,
+};
 
+// ✅ Enable console logging in *every tab* that uses this bundle
+enableSyncrConsoleDevtools();
+
+export const App: React.FC = () => {
   const [filters, setFilters] = useSyncr<Filters>({
-    key: 'filters',
-    defaultValue: defaults,
-    channels,
-    debounceMs: 200
+    key: 'demoFilters',
+    defaultValue: DEFAULT_FILTERS,
+    schema: zodSchema(FilterSchema),
+    debounceMs: 150,
+    channels: [
+      'url',      // URL sync
+      'storage',  // storage sync + cross-tab via `storage` event
+      tapChannel(
+        broadcastChannel<Filters>('demoFilters') // real-time cross-tab
+      ),
+    ],
   });
 
-  const onQ = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onQueryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const q = e.target.value;
-    setFilters(prev => ({ ...prev, q, page: 1 }));
+    setFilters((prev) => ({
+      ...prev,
+      q,
+      page: 1,
+    }));
   };
 
-  const onSort = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const onSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sort = e.target.value as Filters['sort'];
-    setFilters(prev => ({ ...prev, sort }));
+    setFilters((prev) => ({
+      ...prev,
+      sort,
+      page: 1,
+    }));
   };
 
-  const nextPage = () => setFilters(prev => ({ ...prev, page: prev.page + 1 }));
-  const prevPage = () => setFilters(prev => ({ ...prev, page: Math.max(1, prev.page - 1) }));
+  const nextPage = () => {
+    setFilters((prev) => ({
+      ...prev,
+      page: prev.page + 1,
+    }));
+  };
+
+  const reset = () => setFilters(DEFAULT_FILTERS);
 
   return (
-    <div style={{ fontFamily: 'system-ui', padding: 24 }}>
-<label style={{display:'block'}}><input type='checkbox' checked={useServer} onChange={e=>setUseServer(e.target.checked)} /> Sync with Server</label>
-<label style={{display:'block'}}><input type='checkbox' checked={devtools} onChange={e=>{setDevtools(e.target.checked); if(e.target.checked) enableSyncrConsoleDevtools();}} /> Enable DevTools logging</label>
-<label style={{display:'block'}}><input type='checkbox' checked={encrypted} onChange={e=>setEncrypted(e.target.checked)} /> Encrypted storage</label>
-<label style={{display:'block'}}><input type='checkbox' checked={broadcast} onChange={e=>setBroadcast(e.target.checked)} /> Cross-tab Broadcast</label>
+    <div style={{ fontFamily: 'system-ui', padding: '1.5rem', maxWidth: 800 }}>
       <h1>Syncr React Demo</h1>
-      <p>Try typing in the search box, changing sort, and paging. Refresh the page or copy the URL to see state persistence via URL + localStorage.</p>
+      <p>
+        Filters are synced to <strong>URL</strong>, <strong>storage</strong> and{' '}
+        <strong>BroadcastChannel</strong>.
+      </p>
 
-      <label>
-        Search: <input value={filters.q} onChange={onQ} placeholder="Type to search..." />
-      </label>
-      <label style={{ marginLeft: 12 }}>
-        Sort:
-        <select value={filters.sort} onChange={onSort}>
-          <option value="date">Date</option>
-          <option value="name">Name</option>
-        </select>
-      </label>
+      <section
+        style={{
+          marginTop: '1rem',
+          padding: '1rem',
+          border: '1px solid #ddd',
+          borderRadius: 8,
+        }}
+      >
+        <h2>Filter Controls</h2>
+        <div
+          style={{
+            display: 'flex',
+            gap: '1rem',
+            alignItems: 'center',
+          }}
+        >
+          <label>
+            Search:{' '}
+            <input
+              value={filters.q}
+              onChange={onQueryChange}
+              placeholder="Type query..."
+            />
+          </label>
 
-      <div style={{ marginTop: 12 }}>
-        <button onClick={prevPage} disabled={filters.page===1}>Prev</button>
-        <span style={{ margin: '0 8px' }}>Page {filters.page}</span>
-        <button onClick={nextPage}>Next</button>
-      </div>
+          <label>
+            Sort:{' '}
+            <select value={filters.sort} onChange={onSortChange}>
+              <option value="date">Date</option>
+              <option value="name">Name</option>
+            </select>
+          </label>
 
-      <pre style={{ background:'#111', color:'#0f0', padding:12, borderRadius:6, marginTop:16 }}>
-        {JSON.stringify(filters, null, 2)}
-      </pre>
+          <button type="button" onClick={reset}>
+            Reset
+          </button>
+        </div>
+
+        <div style={{ marginTop: '1rem' }}>
+          <button type="button" onClick={nextPage}>
+            Next page
+          </button>
+          <span style={{ marginLeft: '0.5rem' }}>
+            Current page: {filters.page}
+          </span>
+        </div>
+      </section>
+
+      <section
+        style={{
+          marginTop: '1rem',
+          padding: '1rem',
+          border: '1px solid #eee',
+          borderRadius: 8,
+        }}
+      >
+        <h2>Current Synced Filters</h2>
+        <pre
+          style={{
+            background: '#f7f7f7',
+            padding: '0.75rem',
+            borderRadius: 6,
+          }}
+        >
+          {JSON.stringify(filters, null, 2)}
+        </pre>
+        <p style={{ fontSize: 12, color: '#555' }}>
+          Open another tab with the same URL to see{' '}
+          <strong>BroadcastChannel</strong> sync. Refresh to see{' '}
+          <strong>storage</strong> persistence. Copy the URL and open in another
+          browser to see <strong>URL-based</strong> restore.
+        </p>
+      </section>
     </div>
   );
-}
+};
